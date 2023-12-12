@@ -1,7 +1,13 @@
+import { DashboardRoutes } from "@/features/dashboard/routes";
+import { Navigate } from "react-router-dom";
+
 export const commonRoutes = [
   {
     path: "/",
-    element: <div></div>,
-    children: [{ path: "/", element: <h1>Just a dashboard</h1> }],
+    element: <DashboardRoutes />,
+  },
+  {
+    path: "*",
+    element: <Navigate to="/" />,
   },
 ];
