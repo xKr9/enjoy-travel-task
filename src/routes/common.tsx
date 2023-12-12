@@ -3,11 +3,11 @@ import { Navigate } from "react-router-dom";
 
 export const commonRoutes = [
   {
-    path: "/",
+    path: "/dashboard/*",
     element: <DashboardRoutes />,
   },
   {
-    path: "*",
-    element: <Navigate to="/" />,
+    path: "/",
+    element: <Navigate to="/dashboard" />,
   },
 ];
