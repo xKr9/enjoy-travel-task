@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { SubmitHandler, useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import { useToast } from "@/components/ui/use-toast";
 import CarHireBanner from "@/assets/car-hire-banner.jpg";
@@ -26,8 +26,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Car } from "../types/car.t";
 import { formatCurrency } from "@/utils/helpers";
+import { CreateReservationSchema } from "../schemas/CreateReservationSchema";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-type FormDate = {
+type FormData = {
   firstName: string;
   lastName: string;
   dateOfBirth: Date | undefined;
@@ -44,7 +46,8 @@ type FormDate = {
 export default function CreateReservation() {
   const { toast } = useToast();
   const [cars, setCars] = useState<Car[]>([]);
-  const form = useForm<FormDate>({
+  const form = useForm<FormData>({
+    resolver: zodResolver(CreateReservationSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -74,10 +77,17 @@ export default function CreateReservation() {
     }
   }, [form.watch("startDate"), form.watch("endDate")]);
 
+  const onFormSubmit: SubmitHandler<FormData> = (data: FormData) => {};
+
+  console.log(form.formState.errors);
+
   return (
     <AppLayout classNames="lg:p-0">
       <Form {...form}>
-        <div className="flex w-full">
+        <form
+          className="flex w-full"
+          onSubmit={form.handleSubmit(onFormSubmit)}
+        >
           <div className="flex flex-col items-start lg:px-10 w-full gap-5 justify-start pt-10">
             <div className="flex flex-col gap-3">
               <Link
@@ -92,11 +102,17 @@ export default function CreateReservation() {
             <section className="grid gap-5 w-full grid-cols-1">
               <div className="flex flex-col gap-2">
                 <Label>First Name</Label>
-                <Input {...form.register("firstName")} />
+                <Input
+                  error={form.formState.errors.firstName?.message}
+                  {...form.register("firstName")}
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <Label>Last Name</Label>
-                <Input {...form.register("lastName")} />
+                <Input
+                  error={form.formState.errors.lastName?.message}
+                  {...form.register("lastName")}
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <Label>Date of Birth</Label>
@@ -196,6 +212,7 @@ export default function CreateReservation() {
               </div>
             </section>
             <Button
+              type="button"
               disabled={
                 !form.watch("startDate") ||
                 !form.watch("endDate") ||
@@ -225,7 +242,11 @@ export default function CreateReservation() {
             ) > 0 ? (
               <div className="w-full flex-col gap-5 justify-center items-center flex font-bold text-5xl">
                 {formatCurrency(form.watch("price") || 0)}
-                <Button className="self-center w-full lg:w-1/4">
+                <Button
+                  type="submit"
+                  onClick={form.handleSubmit(onFormSubmit)}
+                  className="self-center w-full lg:w-1/4"
+                >
                   Confirm Reservation
                 </Button>
               </div>
@@ -236,7 +257,7 @@ export default function CreateReservation() {
             alt="Car Hire Banner"
             className="w-full hidden lg:block min-h-screen object-cover"
           />
-        </div>
+        </form>
       </Form>
     </AppLayout>
   );
