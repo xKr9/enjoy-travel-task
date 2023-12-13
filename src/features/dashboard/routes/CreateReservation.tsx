@@ -114,8 +114,6 @@ export default function CreateReservation() {
     });
   };
 
-  console.log(form.formState.errors);
-
   return (
     <AppLayout classNames="lg:p-0">
       <Form {...form}>
