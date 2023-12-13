@@ -9,7 +9,7 @@ export type CarCreateRequest = {
   };
   startDate: string;
   endDate: string;
-  price: number;
+  price: number | null;
 };
 
 export type CarReservations = {

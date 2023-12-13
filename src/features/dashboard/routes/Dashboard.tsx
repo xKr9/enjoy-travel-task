@@ -1,6 +1,5 @@
 import ApiClient from "@/api/ApiClient";
 import AppLayout from "@/components/layouts/AppLayout";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -56,7 +55,7 @@ export default function Dashboard() {
         >
           {reservations.map((reservation) => {
             return (
-              <Card key={reservation.id}>
+              <Card data-testid="reservation-card" key={reservation.id}>
                 <CardHeader>
                   <CardTitle>
                     {reservation.firstName} {reservation.lastName}

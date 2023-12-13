@@ -3,12 +3,12 @@ import AppLayout from "@/components/layouts/AppLayout";
 import { Icon } from "@iconify/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import { useToast } from "@/components/ui/use-toast";
 import CarHireBanner from "@/assets/car-hire-banner.jpg";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Form,
   FormControl,
@@ -31,7 +31,6 @@ import ApiClient from "@/api/ApiClient";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CarCreateRequest } from "@/api/CarsApiClient/types";
-import { v4 as uuid } from "uuid";
 
 type FormData = {
   firstName: string;
@@ -49,14 +48,7 @@ type FormData = {
 
 export default function CreateReservation() {
   const { toast } = useToast();
-  const { data: carsData } = useSuspenseQuery({
-    queryKey: ["cars"],
-    queryFn: () => ApiClient.cars.list(),
-  });
-  const { mutate } = useMutation({
-    mutationFn: (data: CarCreateRequest) =>
-      ApiClient.cars.createReservation({ data }),
-  });
+  const navigate = useNavigate();
   const form = useForm<FormData>({
     resolver: zodResolver(CreateReservationSchema),
     defaultValues: {
@@ -73,6 +65,25 @@ export default function CreateReservation() {
       price: null,
     },
   });
+  const { data: carsData } = useSuspenseQuery({
+    queryKey: ["cars"],
+    queryFn: () => ApiClient.cars.list(),
+  });
+  const { mutate } = useMutation({
+    mutationFn: (data: CarCreateRequest) =>
+      ApiClient.cars.createReservation({ data }),
+    onSuccess: () => {
+      toast({
+        title: "Reservation created",
+      });
+      navigate("/dashboard");
+    },
+    onError: () => {
+      toast({
+        title: "Failed creating reservation",
+      });
+    },
+  });
 
   useEffect(() => {
     if (
@@ -87,7 +98,7 @@ export default function CreateReservation() {
   }, [form.watch("startDate"), form.watch("endDate")]);
 
   const onFormSubmit: SubmitHandler<FormData> = (data: FormData) => {
-    if (!form.getValues("price")) return;
+    if (!form.watch("price")) return;
     mutate({
       carPreference: {
         brand: data.carPreference.brand,
@@ -103,7 +114,7 @@ export default function CreateReservation() {
     });
   };
 
-  console.log(form.watch("price"));
+  console.log(form.formState.errors);
 
   return (
     <AppLayout classNames="lg:p-0">
@@ -122,29 +133,52 @@ export default function CreateReservation() {
             </div>
             <section className="grid lg:grid-cols-2 xl:gap-6 gap-5 w-full items-end">
               <div className="flex flex-col gap-2">
-                <Label>First Name</Label>
-                <Input
-                  error={form.formState.errors.firstName?.message}
-                  {...form.register("firstName")}
-                />
+                <Label>
+                  First Name
+                  {form.formState.errors.firstName?.message && (
+                    <span className="text-red-500 px-2 text-xs">
+                      {form.formState.errors.firstName?.message}
+                    </span>
+                  )}
+                </Label>
+                <Input {...form.register("firstName")} />
               </div>
               <div className="flex flex-col gap-2">
-                <Label>Last Name</Label>
-                <Input
-                  error={form.formState.errors.lastName?.message}
-                  {...form.register("lastName")}
-                />
+                <Label>
+                  Last Name
+                  {form.formState.errors.lastName?.message && (
+                    <span className="text-red-500 px-2 text-xs">
+                      {form.formState.errors.lastName?.message}
+                    </span>
+                  )}
+                </Label>
+                <Input {...form.register("lastName")} />
               </div>
               <div className="flex flex-col gap-2">
-                <Label>Date of Birth</Label>
+                <Label>
+                  Date of Birth
+                  {form.formState.errors.dateOfBirth?.message && (
+                    <span className="text-red-500 px-2 text-xs">
+                      {form.formState.errors.dateOfBirth?.message}
+                    </span>
+                  )}
+                </Label>
                 <DatePicker
+                  value={form.watch("dateOfBirth")}
                   onChange={(e) => {
                     form.setValue("dateOfBirth", e);
                   }}
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label>Contact</Label>
+                <Label>
+                  Contact{" "}
+                  {form.formState.errors.contact?.message && (
+                    <span className="text-red-500 px-2 text-xs">
+                      {form.formState.errors.contact?.message}
+                    </span>
+                  )}
+                </Label>
                 <Input {...form.register("contact")} />
               </div>
               <div className="flex sm:col-span-2 flex-col gap-2">
@@ -216,7 +250,14 @@ export default function CreateReservation() {
 
             <section className="grid gap-5 grid-cols-1 xl:grid-cols-2 w-full">
               <div className="flex flex-col gap-2 w-full">
-                <Label>Start Date</Label>
+                <Label>
+                  Start Date
+                  {form.formState.errors.startDate?.message && (
+                    <span className="text-red-500 px-2 text-xs">
+                      {form.formState.errors.startDate?.message}
+                    </span>
+                  )}
+                </Label>
                 <DatePicker
                   value={form.watch("endDate")}
                   onChange={(e) => {
@@ -225,7 +266,14 @@ export default function CreateReservation() {
                 />
               </div>
               <div className="flex flex-col gap-2 w-full">
-                <Label>End Date</Label>
+                <Label>
+                  End Date
+                  {form.formState.errors.endDate?.message && (
+                    <span className="text-red-500 px-2 text-xs">
+                      {form.formState.errors.endDate?.message}
+                    </span>
+                  )}
+                </Label>
                 <DatePicker
                   value={form.watch("startDate")}
                   onChange={(e) => {
