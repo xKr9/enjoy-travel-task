@@ -1,30 +1,37 @@
-# React + TypeScript + Vite
+# Enoy Travel Technical Task
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Running the project
 
-Currently, two official plugins are available:
+To run the project simply run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+```
+npm install
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+Followed by
+
+```
+npm run dev
+```
+
+This will allow you to access the application on localhost:5173
+
+## Technical decisions
+
+From looking at the specification I wanted to provide an interface for hiring cars and have a basic overview for the user to see all of their current hires. With the idea to further expand this by inspecting individual reservations and editing them if necessary.
+
+As to the project structure, I wanted to showcase how I typically build projects and I find this way of building with React to be highly scalable and collaborative amogst my teams.
+
+For the task here are the most noteable library choices
+
+**Axios** - To make networks calls to the mock backend
+
+**Mirage JS** - For a mock backend
+
+**React Testing Library + Vitest** - To have a test envrionment and a way to mount components to test them
+
+**Tanstack Query** - Provide additional utilities for client server communication
+
+**Chadcn/ui** - Provide minimal form components which are responsive and accessible
+
+**Zod + React hook form** - Provide a way to quickly register form components and validate form data against a schema

@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import React from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { BrowserRouter as Router } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const ErrorFallback = () => {
   return (
@@ -20,6 +21,8 @@ const ErrorFallback = () => {
   );
 };
 
+const queryClient = new QueryClient();
+
 export default function AppProvider({
   children,
 }: {
@@ -29,13 +32,15 @@ export default function AppProvider({
     <React.Suspense
       fallback={
         <div className="flex justify-center items-center h-screen">
-          <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-400"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-black"></div>
         </div>
       }
     >
       <ErrorBoundary fallback={<ErrorFallback />}>
-        <Router>{children}</Router>
-        <Toaster />
+        <QueryClientProvider client={queryClient}>
+          <Router>{children}</Router>
+          <Toaster />
+        </QueryClientProvider>
       </ErrorBoundary>
     </React.Suspense>
   );

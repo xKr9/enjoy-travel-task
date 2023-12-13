@@ -3,7 +3,7 @@ import AppLayout from "@/components/layouts/AppLayout";
 import { Icon } from "@iconify/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import { useToast } from "@/components/ui/use-toast";
@@ -24,10 +24,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Car } from "../types/car.t";
 import { formatCurrency } from "@/utils/helpers";
 import { CreateReservationSchema } from "../schemas/CreateReservationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import ApiClient from "@/api/ApiClient";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CarCreateRequest } from "@/api/CarsApiClient/types";
+import { v4 as uuid } from "uuid";
 
 type FormData = {
   firstName: string;
@@ -45,7 +49,14 @@ type FormData = {
 
 export default function CreateReservation() {
   const { toast } = useToast();
-  const [cars, setCars] = useState<Car[]>([]);
+  const { data: carsData } = useSuspenseQuery({
+    queryKey: ["cars"],
+    queryFn: () => ApiClient.cars.list(),
+  });
+  const { mutate } = useMutation({
+    mutationFn: (data: CarCreateRequest) =>
+      ApiClient.cars.createReservation({ data }),
+  });
   const form = useForm<FormData>({
     resolver: zodResolver(CreateReservationSchema),
     defaultValues: {
@@ -64,30 +75,40 @@ export default function CreateReservation() {
   });
 
   useEffect(() => {
-    fetch("/api/cars")
-      .then((res) => res.json())
-      .then((res) => setCars(res));
-  }, []);
-
-  useEffect(() => {
-    if (dayjs(form.watch("startDate")).isAfter(dayjs(form.watch("endDate")))) {
+    if (
+      dayjs(form.watch("startDate")).isValid() &&
+      dayjs(form.watch("endDate")).isValid() &&
+      dayjs(form.watch("startDate")).isAfter(dayjs(form.watch("endDate")))
+    ) {
       toast({
         title: "Start date cannot be after end date",
       });
     }
   }, [form.watch("startDate"), form.watch("endDate")]);
 
-  const onFormSubmit: SubmitHandler<FormData> = (data: FormData) => {};
+  const onFormSubmit: SubmitHandler<FormData> = (data: FormData) => {
+    if (!form.getValues("price")) return;
+    mutate({
+      carPreference: {
+        brand: data.carPreference.brand,
+        model: data.carPreference.model,
+      },
+      contact: data.contact,
+      dateOfBirth: dayjs(data.dateOfBirth).toISOString(),
+      endDate: dayjs(data.endDate).toISOString(),
+      firstName: data.firstName,
+      lastName: data.lastName,
+      price: form.getValues("price"),
+      startDate: dayjs(data.startDate).toISOString(),
+    });
+  };
 
-  console.log(form.formState.errors);
+  console.log(form.watch("price"));
 
   return (
     <AppLayout classNames="lg:p-0">
       <Form {...form}>
-        <form
-          className="flex w-full"
-          onSubmit={form.handleSubmit(onFormSubmit)}
-        >
+        <form className="flex" onSubmit={form.handleSubmit(onFormSubmit)}>
           <div className="flex flex-col items-start lg:px-10 w-full gap-5 justify-start pt-10">
             <div className="flex flex-col gap-3">
               <Link
@@ -99,7 +120,7 @@ export default function CreateReservation() {
               </Link>
               <h1 className="text-6xl font-bold">Hire a car</h1>
             </div>
-            <section className="grid gap-5 w-full grid-cols-1">
+            <section className="grid lg:grid-cols-2 xl:gap-6 gap-5 w-full items-end">
               <div className="flex flex-col gap-2">
                 <Label>First Name</Label>
                 <Input
@@ -124,40 +145,15 @@ export default function CreateReservation() {
               </div>
               <div className="flex flex-col gap-2">
                 <Label>Contact</Label>
-                <Input />
+                <Input {...form.register("contact")} />
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex sm:col-span-2 flex-col gap-2">
                 <FormLabel>Car Preference</FormLabel>
-                <div className="flex gap-5">
-                  <FormField
-                    control={form.control}
-                    name="carPreference.brand"
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a car brand" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {cars.map((car) => (
-                              <SelectItem key={car.brand} value={car.brand}>
-                                {car.brand}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  {form.watch("carPreference.brand") && (
+                <React.Suspense fallback={<Skeleton className="h-4 w-full" />}>
+                  <div className="flex gap-5 flex-col lg:flex-row w-full">
                     <FormField
                       control={form.control}
-                      name="carPreference.model"
+                      name="carPreference.brand"
                       render={({ field }) => (
                         <FormItem className="w-full">
                           <Select
@@ -166,28 +162,55 @@ export default function CreateReservation() {
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a car model" />
+                                <SelectValue placeholder="Select a car brand" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {cars
-                                .find(
-                                  (car) =>
-                                    car.brand ===
-                                    form.watch("carPreference.brand")
-                                )
-                                ?.models.map((model) => (
-                                  <SelectItem key={model} value={model}>
-                                    {model}
-                                  </SelectItem>
-                                ))}
+                              {carsData.map((car) => (
+                                <SelectItem key={car.brand} value={car.brand}>
+                                  {car.brand}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </FormItem>
                       )}
                     />
-                  )}
-                </div>
+                    {form.watch("carPreference.brand") && (
+                      <FormField
+                        control={form.control}
+                        name="carPreference.model"
+                        render={({ field }) => (
+                          <FormItem className="w-full">
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a car model" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {carsData
+                                  .find(
+                                    (car) =>
+                                      car.brand ===
+                                      form.watch("carPreference.brand")
+                                  )
+                                  ?.models.map((model) => (
+                                    <SelectItem key={model} value={model}>
+                                      {model}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
+                </React.Suspense>
               </div>
             </section>
 
@@ -220,9 +243,12 @@ export default function CreateReservation() {
                 !form.watch("carPreference.model")
               }
               onClick={() => {
+                toast({
+                  title: "Price calculated",
+                });
                 form.setValue(
                   "price",
-                  (cars.find(
+                  (carsData.find(
                     (c) => c.brand === form.watch("carPreference.brand")
                   )?.price || 0) *
                     dayjs(form.watch("endDate")).diff(
@@ -239,24 +265,26 @@ export default function CreateReservation() {
             {dayjs(form.watch("endDate")).diff(
               dayjs(form.watch("startDate")),
               "day"
-            ) > 0 ? (
-              <div className="w-full flex-col gap-5 justify-center items-center flex font-bold text-5xl">
+            ) > 0 && form.watch("price") ? (
+              <div className="w-full transition-all flex-col gap-5 justify-center items-center flex font-bold text-5xl">
                 {formatCurrency(form.watch("price") || 0)}
                 <Button
                   type="submit"
                   onClick={form.handleSubmit(onFormSubmit)}
-                  className="self-center w-full lg:w-1/4"
+                  className="self-center w-full xl:w-1/4"
                 >
                   Confirm Reservation
                 </Button>
               </div>
             ) : null}
           </div>
-          <img
-            src={CarHireBanner}
-            alt="Car Hire Banner"
-            className="w-full hidden lg:block min-h-screen object-cover"
-          />
+          <div className="w-full xl:block hidden">
+            <img
+              src={CarHireBanner}
+              alt="Car Hire Banner"
+              className="hidden xl:block min-h-screen object-cover"
+            />
+          </div>
         </form>
       </Form>
     </AppLayout>
